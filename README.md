@@ -52,7 +52,7 @@ func main() {
 }
 ```
 
-## Tablee of Contents
+## Table of Contents
 
 * [Stepper](#stepper)
   * [Publish task](#publish-task)
@@ -62,6 +62,8 @@ func main() {
     * [Simple way](#simple-way-1)
     * [Error handling](#error-handling)
     * [Bind a state](#bind-a-state)
+  * [Subtasks](#subtasks)
+    * [Create a subtask](#create-a-subtask)
 
 ## Publish task
 
@@ -158,7 +160,7 @@ s.TaskHandler("example-task", func(ctx stepper.Context, data []byte) error {
 
 The most powerful feature of the stepper is creating subtasks. The feature allows you to split a long-running task into separate tasks which will run on different nodes. And when all subtasks will be completed the stepper will call a `onFinish` hook of parent task.
 
-### Create subtask
+### Create a subtask
 
 The following example shows how to spawn subtasks within a main task.
 
