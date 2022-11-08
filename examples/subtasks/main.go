@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/matroskin13/stepper"
 	mongoEngine "github.com/matroskin13/stepper/engines/mongo"
@@ -32,12 +33,12 @@ func main() {
 
 		return nil
 	}).OnFinish(func(ctx stepper.Context, data []byte) error {
-		fmt.Println("subtasks are over")
+		fmt.Println("subtasks are over", time.Now().Format(time.Stamp))
 		return nil
 	})
 
 	s.TaskHandler("letter-subtask", func(ctx stepper.Context, data []byte) error {
-		fmt.Printf("[letter-subtask]: have received symbol: %s\r\n", data)
+		fmt.Printf("[letter-subtask][%s]: have received symbol: %s\r\n", time.Now().Format(time.Stamp), data)
 		return nil
 	})
 

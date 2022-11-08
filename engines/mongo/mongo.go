@@ -205,6 +205,7 @@ func (m *Mongo) FailTask(ctx context.Context, id string, handlerErr error, timeo
 		bson.M{"id": id},
 		bson.M{"$set": bson.M{
 			"launchAt": time.Now().Add(timeout),
+			"lock_at":  nil,
 			"status":   "failed",
 			"error":    handlerErr.Error(),
 		}},
@@ -241,7 +242,7 @@ func (m *Mongo) WaitTaskForSubtasks(ctx context.Context, id string) error {
 		bson.M{"$set": bson.M{
 			"lock_at":  nil,
 			"status":   "waiting",
-			"launchAt": time.Now().Add(time.Second * 5),
+			"launchAt": time.Now().Add(time.Second * 1),
 		}},
 	).Err()
 }

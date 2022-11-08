@@ -34,7 +34,7 @@ func main() {
 	})
 
 	for i := 0; i < 10; i++ {
-		if err := s.Publish(context.Background(), "simple", []byte(fmt.Sprintf("hello from %v", i)), stepper.LaunchAt(time.Now().Add(time.Second*10))); err != nil {
+		if err := s.Publish(context.Background(), "simple", []byte(fmt.Sprintf("hello from %v", i)), stepper.LaunchAt(time.Now().Add(time.Second*3))); err != nil {
 			log.Fatal(err)
 		}
 	}

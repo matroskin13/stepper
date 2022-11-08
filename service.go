@@ -291,43 +291,60 @@ func (s *Service) ListenTasks(ctx context.Context) error {
 	}
 }
 
+func (s *Service) handleWaitingTask(ctx context.Context, task *Task) error {
+	subtask, err := s.mongo.GetUnreleasedTaskChildren(ctx, task.ID)
+	if err != nil {
+		return err
+	}
+
+	if subtask == nil {
+		hs, ok := s.taskHandlers[task.Name]
+		if ok && task.JobId == "" && hs.onFinish != nil {
+			if err := hs.onFinish(&taskContext{ctx: ctx, task: task}, task.Data); err != nil {
+				// TODO need to fail the task
+				return nil
+			}
+		}
+
+		if err := s.mongo.ReleaseTask(ctx, task.ID); err != nil {
+			return err
+		}
+	} else {
+		if err := s.mongo.WaitTaskForSubtasks(ctx, task.ID); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (s *Service) ListenWaitingTasks(ctx context.Context) error {
+	interval := time.Millisecond
+
+	pool := Pool(ctx, runtime.NumCPU(), func(task *Task) {
+		if err := s.handleWaitingTask(ctx, task); err != nil {
+			fmt.Println(err)
+		}
+	})
+
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
-		case <-time.After(time.Second):
+		case <-time.After(interval):
 			task, err := s.mongo.FindNextTask(ctx, []string{"waiting"})
 			if err != nil {
 				continue
 			}
 
 			if task == nil {
+				interval = time.Second
 				continue
 			}
 
-			subtask, err := s.mongo.GetUnreleasedTaskChildren(ctx, task.ID)
-			if err != nil {
-				return err
-			}
+			pool <- task
 
-			if subtask == nil {
-				hs, ok := s.taskHandlers[task.Name]
-				if ok && task.JobId == "" && hs.onFinish != nil {
-					if err := hs.onFinish(&taskContext{ctx: ctx, task: task}, task.Data); err != nil {
-						// TODO need to fail the task
-						continue
-					}
-				}
-
-				if err := s.mongo.ReleaseTask(ctx, task.ID); err != nil {
-					return err
-				}
-			} else {
-				if err := s.mongo.WaitTaskForSubtasks(ctx, task.ID); err != nil {
-					return err
-				}
-			}
+			interval = time.Millisecond
 
 			continue
 		}
