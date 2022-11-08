@@ -3,7 +3,7 @@
 A simple, efficient, concurrent task runner.
 
 * **Simple.** Run tasks and schedule jobs with GO.
-* **Database agnostic.** Stepper supports MongoDB, Postgresql.
+* **Database agnostic.** Stepper supports MongoDB, Postgresql (coming soon).
 * **Concurrent.** Stepper can be used in an unlimited number of instances.
 * **Scalable.** Split one task into small subtasks which will run on different nodes.
 
