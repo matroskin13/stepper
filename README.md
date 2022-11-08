@@ -154,3 +154,39 @@ s.TaskHandler("example-task", func(ctx stepper.Context, data []byte) error {
 })
 ```
 
+## Subtasks
+
+The most powerful feature of the stepper is creating subtasks. The feature allows you to split a long-running task into separate tasks which will run on different nodes. And when all subtasks will be completed the stepper will call a `onFinish` hook of parent task.
+
+### Create subtask
+
+The following example shows how to spawn subtasks within a main task.
+
+```go
+s.TaskHandler("task-with-threads", func(ctx stepper.Context, data []byte) error {
+    fmt.Println("have received the word for splitting: ", string(data))
+
+    for _, symbol := range strings.Split(string(data), "") {
+        ctx.CreateSubtask(stepper.CreateTask{
+            Data: []byte(symbol),
+        })
+    }
+
+    return nil
+}).Subtask(func(ctx stepper.Context, data []byte) error {
+    fmt.Printf("[letter-subtask]: have received symbol: %s\r\n", data)
+    return nil
+}).OnFinish(func(ctx stepper.Context, data []byte) error {
+    fmt.Println("subtasks are over")
+    return nil
+})
+```
+
+Or you can use existing a subtask:
+
+```go
+ctx.CreateSubtask(stepper.CreateTask{
+    Name: "some-task",
+    Data: []byte(symbol),
+})
+```
