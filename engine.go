@@ -6,6 +6,11 @@ import (
 )
 
 type Engine interface {
+	TaskEngine
+	JobEngine
+}
+
+type TaskEngine interface {
 	GetRelatedTask(ctx context.Context, task string, id string) (*Task, error)
 	FindNextTask(ctx context.Context, statuses []string) (*Task, error)
 	ReleaseTask(ctx context.Context, id string) error

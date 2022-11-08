@@ -16,11 +16,23 @@ type Mongo struct {
 	tasks *mongo.Collection
 }
 
-func NewMongo(db *mongo.Database) *Mongo {
+func NewMongoWithDb(db *mongo.Database) *Mongo {
 	return &Mongo{
 		jobs:  db.Collection("jobs"),
 		tasks: db.Collection("tasks"),
 	}
+}
+
+func NewMongo(host string, database string) (*Mongo, error) {
+	db, err := createMongoDatabase(host, database)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Mongo{
+		jobs:  db.Collection("jobs"),
+		tasks: db.Collection("tasks"),
+	}, nil
 }
 
 func (m *Mongo) RegisterJob(ctx context.Context, cfg *stepper.JobConfig) error {

@@ -2,39 +2,20 @@ package mongo
 
 import (
 	"context"
-	"log"
-	"os"
-	"testing"
 	"time"
 
-	"github.com/matroskin13/stepper"
-	"github.com/matroskin13/stepper/tests"
 	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func TestMongo(t *testing.T) {
-	tests.Run(t, func() stepper.Stepper {
-		db, err := createTestMongoDatabase("tests")
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		mongoEngine := NewMongoWithDb(db)
-
-		return stepper.NewService(mongoEngine)
-	})
-}
-
-func createTestMongoDatabase(dbName string) (*mongo.Database, error) {
+func createMongoDatabase(mongoHost string, dbName string) (*mongo.Database, error) {
 	cmdMonitor := &event.CommandMonitor{
 		Started: func(_ context.Context, evt *event.CommandStartedEvent) {
 			// log.Print(evt.Command)
 		},
 	}
 
-	mongoHost := os.Getenv("MONGO_HOST")
 	if mongoHost == "" {
 		mongoHost = "mongodb://localhost:27017"
 	}

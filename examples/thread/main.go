@@ -17,8 +17,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	e := mongoEngine.NewMongo(db)
-	s := stepper.NewService(e, e)
+	e := mongoEngine.NewMongoWithDb(db)
+	s := stepper.NewService(e)
 
 	s.TaskHandler("task-with-threads", func(ctx stepper.Context, data []byte) error {
 		fmt.Println("have received the word for splitting: ", string(data))

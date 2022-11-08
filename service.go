@@ -64,12 +64,12 @@ type Service struct {
 	middlewares []MiddlewareHandler
 }
 
-func NewService(engine Engine, jobEngine JobEngine) Stepper {
+func NewService(engine Engine) Stepper {
 	return &Service{
 		jobs:         map[string]*handlerStruct{},
 		taskHandlers: map[string]*handlerStruct{},
 		mongo:        engine,
-		jobEngine:    jobEngine,
+		jobEngine:    engine,
 	}
 }
 

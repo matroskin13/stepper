@@ -22,8 +22,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	e := mongoEngine.NewMongo(db)
-	s := stepper.NewService(e, e)
+	e := mongoEngine.NewMongoWithDb(db)
+	s := stepper.NewService(e)
 
 	s.UseMiddleware(middlewares.LogMiddleware())
 
