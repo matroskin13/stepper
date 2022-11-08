@@ -39,10 +39,10 @@ func main() {
     }
 
     s.TaskHandler("example-task", func(ctx stepper.Context, data []byte) error {
-		fmt.Println(string(data))
+        fmt.Println(string(data))
 
-		return nil
-	})
+        return nil
+    })
 
     if err := s.Listen(context.Background()); err != nil {
         log.Fatal(err)
