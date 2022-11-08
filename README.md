@@ -52,15 +52,16 @@ func main() {
 }
 ```
 
-## Table of Contents
+## Tablee of Contents
 
-- [Stepper](#stepper)
-  - [Install](#install)
-  - [Getting started](#getting-started)
-  - [Table of Contents](#table-of-contents)
-  - [Publish task](#publish-task)
-    - [Simple way](#simple-way)
-    - [Publish with delay](#publish-with-delay)
+* [Stepper](#stepper)
+  * [Publish task](#publish-task)
+    * [Simple way](#simple-way)
+    * [Publish with delay](#publish-with-delay)
+  * [Execute a task](#execute-a-task)
+    * [Simple way](#simple-way-1)
+    * [Error handling](#error-handling)
+    * [Bind a state](#bind-a-state)
 
 ## Publish task
 
@@ -78,7 +79,7 @@ But also the stepper allows you to use additional options.
 
 ### Publish with delay
 
-If you don't want to to execute a task immediately you can set up a delay.
+If you don't want to execute a task immediately you can set up a delay.
 
 ```go
 service.Publish(
@@ -99,3 +100,57 @@ service.Publish(
     stepper.LaunchAt(time.Now().Add(time.Minute * 10)),
 )
 ```
+
+## Execute a task
+
+The second part of the Stepper is execution of tasks in queue.
+
+### Simple way
+
+```go
+s.TaskHandler("example-task", func(ctx stepper.Context, data []byte) error {
+    fmt.Println(string(data))
+
+    return nil
+})
+```
+
+The example shows the simple way to execute a task.
+
+### Error handling
+
+If your handler returns an error, a task will be returned to the queue. And the task will be held in the queue for 10 seconds. But you can set up a delay manually.
+
+```go
+s.TaskHandler("example-task", func(ctx stepper.Context, data []byte) error {
+    ctx.SetRetryAfter(time.Minute) // will be returned in 1 minute
+    return fmt.Errorf("some error")
+})
+```
+
+### Bind a state
+
+If you have a log running task, you can bind a state of task (cursor for example), and if your task failed you will be able to continue the task with the last state 
+
+```go
+s.TaskHandler("example-task", func(ctx stepper.Context, data []byte) error {
+    var lastId int
+
+    if err := ctx.BindState(&lastId); err != nil {
+        return err
+    }
+
+    iter := getSomethingFromId(lastId) // something like a mongodb iterator or anything else
+
+    for iter.Next() {
+        lastId = ... // do something
+
+        if err := ctx.SetState(lastId); err != nil {
+            return err
+        }
+    }
+
+    return nil
+})
+```
+
