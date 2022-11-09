@@ -216,7 +216,7 @@ func (s *Service) handleTask(ctx context.Context, task *Task) error {
 
 	if err := finalHandler(_ctx, task); err != nil {
 		timeout := lo.Ternary(_ctx.retryAfter == 0, time.Second*10, _ctx.retryAfter)
-		if err := s.mongo.FailTask(ctx, task.ID, err, timeout); err != nil {
+		if err := s.mongo.FailTask(ctx, task, err, timeout); err != nil {
 		}
 		return nil
 	}

@@ -211,16 +211,23 @@ func (m *Mongo) Release(ctx context.Context, name string, nextTimeLaunch time.Ti
 	).Err()
 }
 
-func (m *Mongo) FailTask(ctx context.Context, id string, handlerErr error, timeout time.Duration) error {
+func (m *Mongo) FailTask(ctx context.Context, task *stepper.Task, handlerErr error, timeout time.Duration) error {
+	update := bson.M{
+		"launchAt":          time.Now().Add(timeout),
+		"lock_at":           nil,
+		"status":            "failed",
+		"error":             handlerErr.Error(),
+		"middlewares_state": task.MiddlewaresState,
+	}
+
+	if timeout == -1 {
+		update["launchAt"] = nil
+	}
+
 	return m.tasks.FindOneAndUpdate(
 		ctx,
-		bson.M{"id": id},
-		bson.M{"$set": bson.M{
-			"launchAt": time.Now().Add(timeout),
-			"lock_at":  nil,
-			"status":   "failed",
-			"error":    handlerErr.Error(),
-		}},
+		bson.M{"id": task.ID},
+		bson.M{"$set": update},
 	).Err()
 }
 
