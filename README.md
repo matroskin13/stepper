@@ -78,6 +78,10 @@ if err != nil {
     * [Bind a state](#bind-a-state)
   * [Subtasks](#subtasks)
     * [Create a subtask](#create-a-subtask)
+  * [Repeated tasks](#repeated-tasks)
+  * [Middlewares](#middlewares)
+    * [Retry](#retry)
+    * [Prometheus](#prometheus)
 
 ## Publish task
 
