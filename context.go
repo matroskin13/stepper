@@ -54,5 +54,5 @@ func (c *taskContext) SetState(state any) error {
 		return err
 	}
 
-	return c.taskEngine.SetState(c.ctx, c.task.ID, b)
+	return c.taskEngine.SetState(c.ctx, c.task, b)
 }

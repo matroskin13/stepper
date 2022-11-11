@@ -12,6 +12,7 @@ import (
 
 func main() {
 	db, err := examples.CreateMongoDatabase("stepepr")
+
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -21,7 +22,7 @@ func main() {
 
 	s.RegisterJob(context.Background(), &stepper.JobConfig{
 		Name:    "log-job",
-		Pattern: "@every 15s",
+		Pattern: "@every 10s",
 	}, func(ctx stepper.Context) error {
 		fmt.Println("wake up the log-job")
 

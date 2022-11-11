@@ -1,16 +1,18 @@
 package stepper
 
 import (
+	"context"
 	"time"
 
 	"github.com/robfig/cron/v3"
 )
 
 type Job struct {
-	Status       string    `json:"status"`
-	Name         string    `json:"name"`
-	Pattern      string    `json:"pattern"`
-	NextLaunchAt time.Time `json:"naxtLaunchAt"`
+	Status        string          `json:"status"`
+	Name          string          `json:"name"`
+	Pattern       string          `json:"pattern"`
+	NextLaunchAt  time.Time       `json:"naxtLaunchAt"`
+	EngineContext context.Context `json:"-"`
 }
 
 func (j *Job) CalculateNextLaunch() error {

@@ -129,9 +129,13 @@ func (s *Service) Publish(ctx context.Context, name string, data []byte, options
 }
 
 func (s *Service) Listen(ctx context.Context) error {
+	if err := s.jobEngine.Init(ctx); err != nil {
+		return err
+	}
+
 	for _, job := range s.jobs {
 		if err := s.jobEngine.RegisterJob(ctx, job.jobConfig); err != nil {
-			return nil
+			return fmt.Errorf("cannot register job=%s: %w", job.jobConfig.Name, err)
 		}
 	}
 
@@ -174,7 +178,7 @@ func (s *Service) handleTask(ctx context.Context, task *Task) error {
 		}
 
 		if _handler.dependOnCustomId {
-			relatedTask, err := s.mongo.GetRelatedTask(ctx, task.Name, task.CustomId)
+			relatedTask, err := s.mongo.GetRelatedTask(ctx, task)
 			if err != nil {
 				return err
 			}
@@ -247,11 +251,11 @@ func (s *Service) handleTask(ctx context.Context, task *Task) error {
 			}
 		}
 
-		if err := s.mongo.WaitTaskForSubtasks(ctx, task.ID); err != nil {
-			return err
+		if err := s.mongo.WaitTaskForSubtasks(ctx, task); err != nil {
+			return fmt.Errorf("cannot set WaitTaskForSubtasks: %w", err)
 		}
 	} else {
-		if err := s.mongo.ReleaseTask(ctx, task.ID); err != nil {
+		if err := s.mongo.ReleaseTask(ctx, task); err != nil {
 			return err
 		}
 	}
@@ -292,9 +296,9 @@ func (s *Service) ListenTasks(ctx context.Context) error {
 }
 
 func (s *Service) handleWaitingTask(ctx context.Context, task *Task) error {
-	subtask, err := s.mongo.GetUnreleasedTaskChildren(ctx, task.ID)
+	subtask, err := s.mongo.GetUnreleasedTaskChildren(ctx, task)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot get GetUnreleasedTaskChildren: %w", err)
 	}
 
 	if subtask == nil {
@@ -306,12 +310,12 @@ func (s *Service) handleWaitingTask(ctx context.Context, task *Task) error {
 			}
 		}
 
-		if err := s.mongo.ReleaseTask(ctx, task.ID); err != nil {
-			return err
+		if err := s.mongo.ReleaseTask(ctx, task); err != nil {
+			return fmt.Errorf("cannot release waiting task: %w", err)
 		}
 	} else {
-		if err := s.mongo.WaitTaskForSubtasks(ctx, task.ID); err != nil {
-			return err
+		if err := s.mongo.WaitTaskForSubtasks(ctx, task); err != nil {
+			return fmt.Errorf("cannot delay waiting subtask=%s: %w, %s, %s", task.ID, err, ctx.Err(), task.EngineContext.Err())
 		}
 	}
 
@@ -382,11 +386,11 @@ func (s *Service) ListenWaitingJobs(ctx context.Context) error {
 				}
 
 				job.CalculateNextLaunch()
-				if err := s.jobEngine.Release(ctx, job.Name, job.NextLaunchAt); err != nil {
+				if err := s.jobEngine.Release(ctx, job, job.NextLaunchAt); err != nil {
 					return err
 				}
 			} else {
-				if err := s.jobEngine.WaitForSubtasks(ctx, job.Name); err != nil {
+				if err := s.jobEngine.WaitForSubtasks(ctx, job); err != nil {
 					return err
 				}
 			}
@@ -426,7 +430,7 @@ func (s *Service) ListenJobs(ctx context.Context) error {
 				return err
 			}
 
-			if err := s.jobEngine.WaitForSubtasks(ctx, job.Name); err != nil {
+			if err := s.jobEngine.WaitForSubtasks(ctx, job); err != nil {
 				return err
 			}
 

@@ -62,8 +62,8 @@ func (m *Mongo) CreateTask(ctx context.Context, task *stepper.Task) error {
 	return err
 }
 
-func (m *Mongo) SetState(ctx context.Context, id string, state []byte) error {
-	query := bson.M{"id": id}
+func (m *Mongo) SetState(ctx context.Context, task *stepper.Task, state []byte) error {
+	query := bson.M{"id": task.ID}
 	update := bson.M{"$set": bson.M{"state": state}}
 
 	if err := m.tasks.FindOneAndUpdate(ctx, query, update).Err(); err != nil {
@@ -164,12 +164,12 @@ func (m *Mongo) GetUnreleasedJobChildren(ctx context.Context, jobId string) (*st
 	return task.ToModel(), nil
 }
 
-func (m *Mongo) GetUnreleasedTaskChildren(ctx context.Context, id string) (*stepper.Task, error) {
+func (m *Mongo) GetUnreleasedTaskChildren(ctx context.Context, forTask *stepper.Task) (*stepper.Task, error) {
 	var task Task
 
 	query := bson.M{
 		"status": bson.M{"$in": []string{"created", "in_progress"}},
-		"parent": id,
+		"parent": forTask.ID,
 	}
 
 	if err := m.tasks.FindOne(ctx, query).Decode(&task); err != nil {
@@ -183,8 +183,8 @@ func (m *Mongo) GetUnreleasedTaskChildren(ctx context.Context, id string) (*step
 	return task.ToModel(), nil
 }
 
-func (m *Mongo) GetRelatedTask(ctx context.Context, task string, id string) (*stepper.Task, error) {
-	query := bson.M{"custom_id": id, "name": task, "status": bson.M{"$ne": "released"}}
+func (m *Mongo) GetRelatedTask(ctx context.Context, task *stepper.Task) (*stepper.Task, error) {
+	query := bson.M{"custom_id": task.ID, "name": task.Name, "status": bson.M{"$ne": "released"}}
 
 	var e Task
 
@@ -199,10 +199,10 @@ func (m *Mongo) GetRelatedTask(ctx context.Context, task string, id string) (*st
 	return e.ToModel(), nil
 }
 
-func (m *Mongo) Release(ctx context.Context, name string, nextTimeLaunch time.Time) error {
+func (m *Mongo) Release(ctx context.Context, job *stepper.Job, nextTimeLaunch time.Time) error {
 	return m.jobs.FindOneAndUpdate(
 		ctx,
-		bson.M{"name": name},
+		bson.M{"name": job.Name},
 		bson.M{"$set": bson.M{
 			"lock_at":      nil,
 			"status":       "released",
@@ -231,10 +231,10 @@ func (m *Mongo) FailTask(ctx context.Context, task *stepper.Task, handlerErr err
 	).Err()
 }
 
-func (m *Mongo) ReleaseTask(ctx context.Context, id string) error {
+func (m *Mongo) ReleaseTask(ctx context.Context, task *stepper.Task) error {
 	return m.tasks.FindOneAndUpdate(
 		ctx,
-		bson.M{"id": id},
+		bson.M{"id": task.ID},
 		bson.M{"$set": bson.M{
 			"lock_at": nil,
 			"status":  "released",
@@ -242,10 +242,10 @@ func (m *Mongo) ReleaseTask(ctx context.Context, id string) error {
 	).Err()
 }
 
-func (m *Mongo) WaitForSubtasks(ctx context.Context, name string) error {
+func (m *Mongo) WaitForSubtasks(ctx context.Context, job *stepper.Job) error {
 	return m.jobs.FindOneAndUpdate(
 		ctx,
-		bson.M{"name": name},
+		bson.M{"name": job.Name},
 		bson.M{"$set": bson.M{
 			"lock_at":      nil,
 			"status":       "waiting",
@@ -254,14 +254,19 @@ func (m *Mongo) WaitForSubtasks(ctx context.Context, name string) error {
 	).Err()
 }
 
-func (m *Mongo) WaitTaskForSubtasks(ctx context.Context, id string) error {
+func (m *Mongo) WaitTaskForSubtasks(ctx context.Context, task *stepper.Task) error {
 	return m.tasks.FindOneAndUpdate(
 		ctx,
-		bson.M{"id": id},
+		bson.M{"id": task.ID},
 		bson.M{"$set": bson.M{
 			"lock_at":  nil,
 			"status":   "waiting",
 			"launchAt": time.Now().Add(time.Second * 1),
 		}},
 	).Err()
+}
+
+// TODO add indexes
+func (m *Mongo) Init(ctx context.Context) error {
+	return nil
 }

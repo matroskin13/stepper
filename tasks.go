@@ -1,6 +1,7 @@
 package stepper
 
 import (
+	"context"
 	"time"
 )
 
@@ -16,6 +17,7 @@ type Task struct {
 	LockAt           *time.Time        `json:"lock_at"`
 	State            []byte            `json:"state"`
 	MiddlewaresState map[string][]byte `json:"middlewares_state"`
+	EngineContext    context.Context   `json:"-"`
 }
 
 func (t *Task) IsWaiting() bool {

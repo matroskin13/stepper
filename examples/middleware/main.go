@@ -8,14 +8,19 @@ import (
 	"time"
 
 	"github.com/matroskin13/stepper"
-	"github.com/matroskin13/stepper/engines/mongo"
+	"github.com/matroskin13/stepper/engines/pg"
 	"github.com/matroskin13/stepper/middlewares"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
-	db, err := mongo.NewMongo("mongodb://localhost:27017", "tasks")
+	/*db, err := mongo.NewMongo("mongodb://localhost:27017", "tasks")
+	if err != nil {
+		log.Fatal(err)
+	}*/
+
+	db, err := pg.NewPG("postgres://postgres:test@localhost:5432/postgres")
 	if err != nil {
 		log.Fatal(err)
 	}
