@@ -3,7 +3,7 @@
 A simple, efficient, concurrent task runner.
 
 * **Simple.** Run tasks and schedule jobs with GO.
-* **Database agnostic.** Stepper supports MongoDB, Postgresql (coming soon).
+* **Database agnostic.** Stepper supports MongoDB, Postgresql (beta).
 * **Concurrent.** Stepper can be used in an unlimited number of instances.
 * **Scalable.** Split one task into small subtasks which will run on different nodes.
 
@@ -51,6 +51,20 @@ func main() {
     }
 }
 ```
+
+Or you can use PostgresQL:
+
+```go
+import "github.com/matroskin13/stepper/engines/pg"
+```
+
+```go
+engine, err := pg.NewPG("postgres://postgres:test@localhost:5432/postgres")
+if err != nil {
+    log.Fatal(err)
+}
+```
+
 
 ## Table of Contents
 
@@ -191,4 +205,91 @@ ctx.CreateSubtask(stepper.CreateTask{
     Name: "some-task",
     Data: []byte(symbol),
 })
+```
+
+## Repeated tasks
+
+If you want to run repeatead task (cron) you can use jobs
+
+```go
+s.RegisterJob(context.Background(), &stepper.JobConfig{
+    Name:    "log-job",
+    Pattern: "@every 10s",
+}, func(ctx stepper.Context) error {
+    fmt.Println("wake up the log-job")
+    return nil
+})
+```
+
+Read https://pkg.go.dev/github.com/robfig/cron#hdr-CRON_Expression_Format for more information about a pattern.
+
+Also you can create subtasks from a job:
+
+```go
+s.RegisterJob(context.Background(), &stepper.JobConfig{
+    Name:    "log-job",
+    Pattern: "@every 10s",
+}, func(ctx stepper.Context) error {
+    fmt.Println("wake up the log-job")
+
+    ctx.CreateSubtask(stepper.CreateTask{
+        Name: "log-subtask",
+        Data: []byte("Hello 1 subtask"),
+    })
+
+    return nil
+}).OnFinish(func(ctx stepper.Context, data []byte) error {
+    fmt.Println("success job log-job")
+
+    return nil
+})
+```
+
+## Middlewares
+
+### Retry
+
+The retry middleware allows you to limit a number of retries.
+
+```go
+service := stepper.NewService(db)
+
+s.UseMiddleware(middlewares.Retry(middlewares.RetryOptions{
+    Interval:   time.Second * 5,
+    MaxRetries: 3,
+}))
+```
+
+### Prometheus
+
+
+```go
+service := stepper.NewService(db)
+
+prometheusMiddleware := middlewares.NewPrometheus()
+
+s.UseMiddleware(prometheusMiddleware.GetMiddleware())
+
+go func() {
+    http.ListenAndServe(":3999", promhttp.HandlerFor(prometheusMiddleware.GetRegistry(), promhttp.HandlerOpts{}))
+}()
+
+if err := s.Listen(context.Background()); err != nil {
+    log.Fatal(err)
+}
+```
+
+The prometheus middleware provides following metrics:
+
+```go
+prometheus.NewCounterVec(prometheus.CounterOpts{
+    Name: "stepper_task_execution",
+    Help: "Count of all task executions",
+}, []string{"task", "status"})
+
+prometheus.NewHistogramVec(prometheus.HistogramOpts{
+    Name:    "stepper_task_duration_seconds",
+    Help:    "Duration of all executions",
+    Buckets: []float64{.025, .05, .1, .25, .5, 1, 2.5, 5, 10, 20, 30},
+}, []string{"task", "status"})
 ```
