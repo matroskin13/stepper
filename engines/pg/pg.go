@@ -67,6 +67,14 @@ func (pg *PG) Init(ctx context.Context) error {
 		return err
 	}
 
+	if _, err := pg.pool.Exec(ctx, `CREATE INDEX IF NOT EXISTS idx_full ON tasks(name, status, launch_at)`); err != nil {
+		return err
+	}
+
+	if _, err := pg.pool.Exec(ctx, `CREATE INDEX IF NOT EXISTS idx_id ON tasks(id)`); err != nil {
+		return err
+	}
+
 	return nil
 }
 

@@ -268,5 +268,16 @@ func (m *Mongo) WaitTaskForSubtasks(ctx context.Context, task *stepper.Task) err
 
 // TODO add indexes
 func (m *Mongo) Init(ctx context.Context) error {
+	m.tasks.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{
+			Keys:    bson.M{"id": 1},
+			Options: options.Index().SetBackground(true),
+		},
+		{
+			Keys:    bson.D{{"name", 1}, {"status", 1}, {"launchAt", 1}},
+			Options: options.Index().SetBackground(true),
+		},
+	})
+
 	return nil
 }
