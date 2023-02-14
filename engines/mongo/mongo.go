@@ -41,13 +41,27 @@ func (m *Mongo) RegisterJob(ctx context.Context, cfg *stepper.JobConfig) error {
 		return err
 	}
 
-	query := bson.M{"name": cfg.Name}
+	query := bson.M{"name": cfg.Name, "custom_id": cfg.CustomId}
 	update := bson.M{
 		"nextLaunchAt": nextLaunchAt,
 		"name":         cfg.Name,
 		"tags":         cfg.Tags,
 		"pattern":      cfg.Pattern,
 		"status":       "created",
+		"custom_id":    cfg.CustomId,
+	}
+
+	if cfg.Schedule != nil {
+		pattern, err := cfg.GetRRulePattern()
+		if err != nil {
+			return err
+		}
+
+		update["rrule_pattern"] = pattern
+	}
+
+	if cfg.CalendarPattern != nil {
+		update["rrule_pattern"] = cfg.CalendarPattern.String()
 	}
 
 	opts := options.FindOneAndReplace().SetUpsert(true).SetReturnDocument(options.After)
@@ -109,6 +123,20 @@ func (m *Mongo) FindNextTask(ctx context.Context, statuses []string) (*stepper.T
 	}
 
 	return job.ToModel(), nil
+}
+
+func (m *Mongo) DeleteJob(ctx context.Context, name string, customId string) error {
+	query := bson.M{"name": name}
+
+	if customId != "" {
+		query["custom_id"] = customId
+	}
+
+	if _, err := m.jobs.DeleteOne(ctx, query); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (m *Mongo) FindNextJob(ctx context.Context, statuses []string) (*stepper.Job, error) {
@@ -200,9 +228,14 @@ func (m *Mongo) GetRelatedTask(ctx context.Context, task *stepper.Task) (*steppe
 }
 
 func (m *Mongo) Release(ctx context.Context, job *stepper.Job, nextTimeLaunch time.Time) error {
+	query := bson.M{"name": job.Name}
+	if job.CustomId != "" {
+		query["custom_id"] = job.CustomId
+	}
+
 	return m.jobs.FindOneAndUpdate(
 		ctx,
-		bson.M{"name": job.Name},
+		query,
 		bson.M{"$set": bson.M{
 			"lock_at":      nil,
 			"status":       "released",
@@ -243,9 +276,14 @@ func (m *Mongo) ReleaseTask(ctx context.Context, task *stepper.Task) error {
 }
 
 func (m *Mongo) WaitForSubtasks(ctx context.Context, job *stepper.Job) error {
+	query := bson.M{"name": job.Name}
+	if job.CustomId != "" {
+		query["custom_id"] = job.CustomId
+	}
+
 	return m.jobs.FindOneAndUpdate(
 		ctx,
-		bson.M{"name": job.Name},
+		query,
 		bson.M{"$set": bson.M{
 			"lock_at":      nil,
 			"status":       "waiting",

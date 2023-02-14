@@ -88,6 +88,16 @@ func (s *Service) RegisterJob(ctx context.Context, config *JobConfig, h JobHandl
 	return &hs
 }
 
+func (s *Service) JobHandler(name string, h JobHandler) HandlerStruct {
+	hs := handlerStruct{
+		jobHandler: h,
+	}
+
+	s.jobs[name] = &hs
+
+	return &hs
+}
+
 func (s *Service) TaskHandler(name string, h Handler) HandlerStruct {
 	hs := handlerStruct{
 		handler: h,
@@ -128,12 +138,20 @@ func (s *Service) Publish(ctx context.Context, name string, data []byte, options
 	return s.createTask(ctx, created)
 }
 
+func (s *Service) CreateJob(ctx context.Context, cfg *JobConfig) error {
+	return s.jobEngine.RegisterJob(ctx, cfg)
+}
+
 func (s *Service) Listen(ctx context.Context) error {
 	if err := s.jobEngine.Init(ctx); err != nil {
 		return err
 	}
 
 	for _, job := range s.jobs {
+		if job.jobConfig == nil {
+			continue
+		}
+
 		if err := s.jobEngine.RegisterJob(ctx, job.jobConfig); err != nil {
 			return fmt.Errorf("cannot register job=%s: %w", job.jobConfig.Name, err)
 		}
@@ -158,6 +176,10 @@ func (s *Service) Listen(ctx context.Context) error {
 	})
 
 	return g.Wait()
+}
+
+func (s *Service) DeleteJob(ctx context.Context, name string, customId string) error {
+	return s.mongo.DeleteJob(ctx, name, customId)
 }
 
 func (s *Service) handleTask(ctx context.Context, task *Task) error {
@@ -425,7 +447,7 @@ func (s *Service) ListenJobs(ctx context.Context) error {
 				LaunchAt:         time.Now(),
 				Data:             nil,
 				MiddlewaresState: map[string][]byte{},
-				CustomId:         "",
+				CustomId:         job.CustomId,
 			}); err != nil {
 				return err
 			}

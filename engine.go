@@ -27,5 +27,6 @@ type JobEngine interface {
 	Release(ctx context.Context, job *Job, nextLaunchAt time.Time) error
 	WaitForSubtasks(ctx context.Context, job *Job) error
 	RegisterJob(ctx context.Context, cfg *JobConfig) error
+	DeleteJob(ctx context.Context, name string, customId string) error
 	Init(ctx context.Context) error
 }

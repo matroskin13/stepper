@@ -11,6 +11,8 @@ type job struct {
 	Name         string    `bson:"name"`
 	Pattern      string    `bson:"pattern"`
 	NextLaunchAt time.Time `bson:"naxtLaunchAt"`
+	CustomId     string    `bson:"custom_id"`
+	RRulePatern  string    `bson:"rrule_pattern"`
 }
 
 func (j *job) FromModel(model *stepper.Job) {
@@ -18,6 +20,8 @@ func (j *job) FromModel(model *stepper.Job) {
 	j.Name = model.Name
 	j.Pattern = model.Pattern
 	j.NextLaunchAt = model.NextLaunchAt
+	j.CustomId = model.CustomId
+	j.RRulePatern = model.RRulePatern
 }
 
 func (j *job) ToModel() *stepper.Job {
@@ -26,5 +30,7 @@ func (j *job) ToModel() *stepper.Job {
 		Name:         j.Name,
 		Pattern:      j.Pattern,
 		NextLaunchAt: j.NextLaunchAt,
+		CustomId:     j.CustomId,
+		RRulePatern:  j.RRulePatern,
 	}
 }
