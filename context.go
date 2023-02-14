@@ -13,6 +13,7 @@ type Context interface {
 	BindState(state any) error
 	SetState(state any) error
 	SetRetryAfter(timeout time.Duration)
+	SetContext(ctx context.Context)
 }
 
 type taskContext struct {
@@ -30,6 +31,10 @@ func (c *taskContext) Task() *Task {
 
 func (c *taskContext) Context() context.Context {
 	return c.ctx
+}
+
+func (c *taskContext) SetContext(ctx context.Context) {
+	c.ctx = ctx
 }
 
 func (c *taskContext) CreateSubtask(sub CreateTask) {
