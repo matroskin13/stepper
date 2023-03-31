@@ -19,6 +19,7 @@ type TaskEngine interface {
 	CreateTask(ctx context.Context, task *Task) error
 	GetUnreleasedTaskChildren(ctx context.Context, task *Task) (*Task, error)
 	SetState(ctx context.Context, task *Task, state []byte) error
+	CollectMetrics(ctx context.Context) error
 }
 
 type JobEngine interface {

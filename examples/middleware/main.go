@@ -8,24 +8,23 @@ import (
 	"time"
 
 	"github.com/matroskin13/stepper"
-	"github.com/matroskin13/stepper/engines/pg"
+	"github.com/matroskin13/stepper/examples"
 	"github.com/matroskin13/stepper/middlewares"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	mongoEngine "github.com/matroskin13/stepper/engines/mongo"
 )
 
 func main() {
-	/*db, err := mongo.NewMongo("mongodb://localhost:27017", "tasks")
-	if err != nil {
-		log.Fatal(err)
-	}*/
-
-	db, err := pg.NewPG("postgres://postgres:test@localhost:5432/postgres")
+	db, err := examples.CreateMongoDatabase("stepepr")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	s := stepper.NewService(db)
+	e := mongoEngine.NewMongoWithDb(db)
+	s := stepper.NewService(e)
 
 	prometheusMiddleware := middlewares.NewPrometheus()
 
@@ -45,7 +44,8 @@ func main() {
 	}
 
 	go func() {
-		http.ListenAndServe(":3999", promhttp.HandlerFor(prometheusMiddleware.GetRegistry(), promhttp.HandlerOpts{}))
+		prometheus.DefaultRegisterer.MustRegister(prometheusMiddleware.GetRegistry())
+		http.ListenAndServe(":3999", promhttp.Handler())
 	}()
 
 	if err := s.Listen(context.Background()); err != nil {

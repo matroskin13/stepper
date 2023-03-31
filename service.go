@@ -157,7 +157,24 @@ func (s *Service) Listen(ctx context.Context) error {
 		return s.ListenWaitingTasks(ctx)
 	})
 
+	g.Go(func() error {
+		return s.collectMetrics(ctx)
+	})
+
 	return g.Wait()
+}
+
+func (s *Service) collectMetrics(ctx context.Context) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-time.After(time.Second * 15):
+			if err := s.mongo.CollectMetrics(ctx); err != nil {
+				fmt.Println(err)
+			}
+		}
+	}
 }
 
 func (s *Service) handleTask(ctx context.Context, task *Task) error {

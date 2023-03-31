@@ -281,3 +281,27 @@ func (m *Mongo) Init(ctx context.Context) error {
 
 	return nil
 }
+
+func (m *Mongo) CollectMetrics(ctx context.Context) error {
+	unreleasedCount, err := m.tasks.CountDocuments(ctx, bson.M{
+		"$or": bson.A{
+			bson.M{
+				"status":   "failed",
+				"launchAt": bson.M{"$ne": nil},
+			},
+			bson.M{
+				"status": bson.M{"$nin": []string{"failed", "released"}},
+				"launchAt": bson.M{
+					"$lte": time.Now(),
+				},
+			},
+		},
+	})
+	if err != nil {
+		return err
+	}
+
+	overallUnreleasedMetric.Set(float64(unreleasedCount))
+
+	return nil
+}

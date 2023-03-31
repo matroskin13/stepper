@@ -82,6 +82,10 @@ func (pg *PG) Close() {
 	pg.pool.Close()
 }
 
+func (pg *PG) CollectMetrics(ctx context.Context) error {
+	return nil
+}
+
 func (pg *PG) GetRelatedTask(ctx context.Context, task *stepper.Task) (*stepper.Task, error) {
 	return nil, nil
 }
