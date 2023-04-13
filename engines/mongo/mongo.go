@@ -121,7 +121,7 @@ func (m *Mongo) FindNextJob(ctx context.Context, statuses []string) (*stepper.Jo
 		},
 		"$or": []bson.M{
 			{"lock_at": nil},
-			{"lock_at": bson.M{"$lte": time.Now().Add(time.Minute * 5)}}, // TODO pass right timeout
+			{"lock_at": bson.M{"$lte": time.Now().Add(time.Minute * -5)}}, // TODO pass right timeout
 		},
 	}
 
