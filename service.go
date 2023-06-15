@@ -88,9 +88,10 @@ func (s *Service) RegisterJob(ctx context.Context, config *JobConfig, h JobHandl
 	return &hs
 }
 
-func (s *Service) TaskHandler(name string, h Handler) HandlerStruct {
+func (s *Service) TaskHandler(name string, h Handler, middlewares ...MiddlewareHandler) HandlerStruct {
 	hs := handlerStruct{
-		handler: h,
+		handler:     h,
+		middlewares: middlewares,
 	}
 
 	s.taskHandlers[name] = &hs
