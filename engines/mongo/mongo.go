@@ -87,7 +87,7 @@ func (m *Mongo) FindNextTask(ctx context.Context, statuses []string) (*stepper.T
 		},
 		"$or": []bson.M{
 			{"lock_at": nil},
-			{"lock_at": bson.M{"$lte": time.Now().Add(2 * time.Minute * -1)}}, // TODO pass right timeout
+			{"lock_at": bson.M{"$lte": time.Now().Add(5 * time.Minute * -1)}}, // TODO pass right timeout
 		},
 	}
 
