@@ -12,7 +12,7 @@ type Engine interface {
 
 type TaskEngine interface {
 	GetRelatedTask(ctx context.Context, task *Task) (*Task, error)
-	FindNextTask(ctx context.Context, statuses []string) (*Task, error)
+	FindNextTask(ctx context.Context, tasks []string, statuses []string, lockTimeout time.Duration) (*Task, error)
 	ReleaseTask(ctx context.Context, task *Task) error
 	WaitTaskForSubtasks(ctx context.Context, task *Task) error
 	FailTask(ctx context.Context, task *Task, err error, timeout time.Duration) error

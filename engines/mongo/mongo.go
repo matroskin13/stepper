@@ -77,7 +77,7 @@ func (m *Mongo) SetState(ctx context.Context, task *stepper.Task, state []byte) 
 	return nil
 }
 
-func (m *Mongo) FindNextTask(ctx context.Context, statuses []string) (*stepper.Task, error) {
+func (m *Mongo) FindNextTask(ctx context.Context, tasks []string, statuses []string, lockTimeout time.Duration) (*stepper.Task, error) {
 	var job Task
 
 	query := bson.M{
@@ -87,8 +87,14 @@ func (m *Mongo) FindNextTask(ctx context.Context, statuses []string) (*stepper.T
 		},
 		"$or": []bson.M{
 			{"lock_at": nil},
-			{"lock_at": bson.M{"$lte": time.Now().Add(2 * time.Minute * -1)}}, // TODO pass right timeout
+			{"lock_at": bson.M{"$lte": time.Now().Add(lockTimeout)}}, // TODO pass right timeout
 		},
+	}
+
+	if len(tasks) > 0 {
+		query["name"] = bson.M{
+			"$in": tasks,
+		}
 	}
 
 	update := bson.M{

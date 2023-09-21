@@ -22,6 +22,7 @@ type handlerStruct struct {
 	middlewares      []MiddlewareHandler
 	jobHandler       JobHandler
 	jobConfig        *JobConfig
+	timeout          time.Duration
 	dependOnCustomId bool
 }
 
@@ -47,11 +48,18 @@ func (h *handlerStruct) UseMiddleware(middlewares ...MiddlewareHandler) {
 	h.middlewares = middlewares
 }
 
+func (h *handlerStruct) SetTimeout(t time.Duration) HandlerStruct {
+	h.timeout = t
+
+	return h
+}
+
 type HandlerStruct interface {
 	OnFinish(h Handler) HandlerStruct
 	Subtask(handler Handler) HandlerStruct
 	UseMiddleware(middlewares ...MiddlewareHandler)
 	DependOnCustomId() HandlerStruct
+	SetTimeout(t time.Duration) HandlerStruct
 }
 
 type Service struct {
@@ -92,6 +100,7 @@ func (s *Service) TaskHandler(name string, h Handler, middlewares ...MiddlewareH
 	hs := handlerStruct{
 		handler:     h,
 		middlewares: middlewares,
+		timeout:     2 * time.Minute,
 	}
 
 	s.taskHandlers[name] = &hs
@@ -290,27 +299,44 @@ func (s *Service) ListenTasks(ctx context.Context) error {
 
 	interval := time.Millisecond
 
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		case <-time.After(interval):
-			task, err := s.mongo.FindNextTask(ctx, []string{"created", "in_progress", "failed"})
-			if err != nil {
-				fmt.Println(err)
-				continue
+	allowedTasks := lo.Keys(s.taskHandlers)
+
+	// Every when job is launched scheduler creates 1 task for job
+	allowedJobTasks := lo.MapToSlice(s.jobs, func(key string, value *handlerStruct) string {
+		return fmt.Sprintf("__job:" + value.jobConfig.Name)
+	})
+	allowedTasks = append(allowedTasks, allowedJobTasks...)
+
+	g, gctx := errgroup.WithContext(ctx)
+
+	for _, allowedTask := range allowedTasks {
+		allowedTask := allowedTask
+		g.Go(func() error {
+			for {
+				select {
+				case <-gctx.Done():
+					return nil
+				case <-time.After(interval):
+					task, err := s.mongo.FindNextTask(gctx, []string{allowedTask}, []string{"created", "in_progress", "failed"}, 2*time.Minute*-1)
+					if err != nil {
+						fmt.Println(err)
+						continue
+					}
+
+					if task == nil {
+						interval = time.Second
+						continue
+					}
+
+					pool <- task
+
+					interval = time.Millisecond
+				}
 			}
-
-			if task == nil {
-				interval = time.Second
-				continue
-			}
-
-			pool <- task
-
-			interval = time.Millisecond
-		}
+		})
 	}
+
+	return g.Wait()
 }
 
 func (s *Service) handleWaitingTask(ctx context.Context, task *Task) error {
@@ -354,7 +380,7 @@ func (s *Service) ListenWaitingTasks(ctx context.Context) error {
 		case <-ctx.Done():
 			return nil
 		case <-time.After(interval):
-			task, err := s.mongo.FindNextTask(ctx, []string{"waiting"})
+			task, err := s.mongo.FindNextTask(ctx, nil, []string{"waiting"}, 2*time.Minute*-1)
 			if err != nil {
 				continue
 			}
